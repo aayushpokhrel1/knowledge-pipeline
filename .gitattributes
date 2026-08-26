@@ -1,0 +1,6 @@
+# Keep shell scripts LF so they run under bash/WSL
+*.sh text eol=lf
+# PowerShell is fine with CRLF on Windows
+*.ps1 text eol=crlf
+# Everything else: normalize to LF in the repo
+* text=auto eol=lf

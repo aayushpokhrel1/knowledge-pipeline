@@ -1,0 +1,18 @@
+# Third-party project cloned by setup (not vendored into this repo)
+/claude-obsidian/
+
+# Graphify output
+graphify-out/
+
+# Any local vault that ends up inside the repo (vaults belong in WSL/home)
+/vault/
+knowledge-vault/
+
+# Python / tooling
+__pycache__/
+*.pyc
+.venv/
+
+# OS cruft
+.DS_Store
+Thumbs.db
