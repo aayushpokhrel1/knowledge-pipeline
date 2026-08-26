@@ -56,7 +56,9 @@ if ($wsl) {
   Say 'Building the vault inside WSL (writes need a POSIX filesystem)'
   # Run setup.sh from within WSL against the WSL home filesystem.
   $repoWsl = (wsl wslpath -a "$RepoDir").Trim()
-  wsl bash -lc "cd '$repoWsl' && VAULT_DIR=`$HOME/knowledge-vault CO_DIR='$repoWsl/claude-obsidian' bash ./setup.sh"
+  # Graphify is already installed natively above, so skip it inside WSL and just
+  # build the vault on the POSIX filesystem.
+  wsl bash -lc "cd '$repoWsl' && KP_SKIP_GRAPHIFY=1 VAULT_DIR=`$HOME/knowledge-vault CO_DIR='$repoWsl/claude-obsidian' bash ./setup.sh"
 } else {
   Warn 'WSL not found. Install it with:  wsl --install'
   Warn 'Then re-run this script, or run ./setup.sh inside WSL to build the vault.'
