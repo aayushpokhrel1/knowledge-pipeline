@@ -16,3 +16,6 @@ __pycache__/
 # OS cruft
 .DS_Store
 Thumbs.db
+
+# Stray nested clones
+/repo/
