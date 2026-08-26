@@ -39,9 +39,12 @@ so the two ends meet.
 - **Python 3.10+**
 - **Claude Code** (for the `/graphify` and `/claude-obsidian:*` skills)
 - A **write-capable platform for the vault**: Linux, macOS, or **WSL on Windows**.
-  Native Windows can read a vault but cannot safely write one (see [Why WSL](#why-the-vault-lives-in-wsl-on-windows)).
+  Native Windows can read a vault but cannot safely write one.
 - The **Obsidian desktop app** (free): download from [obsidian.md](https://obsidian.md).
   You install this yourself; the script can't.
+- **Windows only, one-time:** enable POSIX metadata on the WSL drive mount so Obsidian
+  and the plugin can share a single vault on your Windows drive. See
+  [Windows setup](#windows-setup-do-this-once). Do this **before** running `setup.ps1`.
 
 ### 1. Run setup
 
@@ -55,8 +58,8 @@ cd knowledge-pipeline
 ./setup.sh
 ```
 
-**Windows (PowerShell)** — installs the Graphify half natively, then hands the
-vault step to WSL:
+**Windows (PowerShell)** — do the [one-time metadata step](#windows-setup-do-this-once)
+first, then:
 
 ```powershell
 git clone https://github.com/aayushpokhrel1/knowledge-pipeline.git
@@ -68,22 +71,34 @@ The script will:
 1. Install [`uv`](https://github.com/astral-sh/uv) if needed and install **Graphify**.
 2. Run `graphify install` to add the `/graphify` skill to Claude Code.
 3. Clone **claude-obsidian** into `./claude-obsidian/`.
-4. Create a vault at `~/knowledge-vault` (override with `VAULT_DIR=...`) and verify it.
+4. Create a vault and verify it (`doctor` reports `ok: true`):
+   - **Windows:** at `Documents\Knowledge-Vault` (once metadata is enabled).
+   - **Linux/macOS:** at `~/knowledge-vault`.
 
 Everything is idempotent: re-running skips what's already done.
 
 ### 2. Open the vault in Obsidian
 
-- **Linux/macOS:** Obsidian → *Open folder as vault* → `~/knowledge-vault`
-- **Windows (vault is in WSL):** Obsidian → *Open folder as vault* → paste
-  `\\wsl.localhost\<Distro>\home\<you>\knowledge-vault`
-  (e.g. `\\wsl.localhost\Ubuntu\home\yourname\knowledge-vault`)
+Obsidian → *Open folder as vault* → select the vault folder:
+
+- **Windows:** `C:\Users\<you>\Documents\Knowledge-Vault`
+- **Linux/macOS:** `~/knowledge-vault`
+
+> **Windows: do not open the vault over `\\wsl.localhost\...`.** Obsidian does not
+> support vaults on that network share and fails to load with
+> `Error EISDIR: illegal operation on a directory`. Keep the vault on your Windows
+> drive (the setup above does this) and open it as a normal local folder.
 
 ### 3. Use it
 
 **Have Claude maintain the vault** (run from a write-capable shell, i.e. WSL on Windows):
 
 ```bash
+# Windows (in WSL):
+cd /mnt/c/Users/<you>/Documents/Knowledge-Vault
+claude --plugin-dir /mnt/c/Users/<you>/dev/.../knowledge-pipeline/claude-obsidian
+
+# Linux/macOS:
 cd ~/knowledge-vault
 claude --plugin-dir /absolute/path/to/knowledge-pipeline/claude-obsidian
 ```
@@ -106,19 +121,37 @@ and a queryable `graph.json`.
 
 ---
 
-## Why the vault lives in WSL on Windows
+## Windows setup (do this once)
 
-claude-obsidian protects your vault with safe-write transactions that depend on
-real POSIX file permissions. The Windows `/mnt/c` mount reports every file as mode
-`0777`, so the plugin's integrity check fails with `RESULT_DRIFT` even though the
-file contents are correct.
+On Windows the vault should live on your **Windows drive** (so Obsidian opens it as a
+normal local folder) while still being written to from **WSL** (which is where the
+claude-obsidian plugin runs). For that to work, WSL must expose real file permissions
+on the Windows mount, otherwise the plugin's safe-write integrity check fails with
+`RESULT_DRIFT` (every file on a default `/mnt/c` mount looks like mode `0777`).
 
-The clean fix (and the plugin authors' own recommendation) is to keep the vault on
-the **WSL filesystem** (`~/knowledge-vault`), which has native permissions. It's
-still fully visible from Windows Explorer and Obsidian at
-`\\wsl.localhost\<Distro>\home\<you>\knowledge-vault`. The alternative, enabling
-`metadata` on the `/mnt/c` automount in `/etc/wsl.conf`, is a system-level change
-this project deliberately does not make for you.
+Enable POSIX metadata once:
+
+1. In **PowerShell**, open a root shell in WSL (no password needed):
+   ```powershell
+   wsl -u root
+   ```
+2. In that **WSL** shell, write the config and exit:
+   ```bash
+   printf '[automount]\noptions = "metadata"\n' > /etc/wsl.conf; cat /etc/wsl.conf; exit
+   ```
+3. Back in **PowerShell**, restart WSL so it remounts with metadata:
+   ```powershell
+   wsl --shutdown
+   ```
+
+Verify (in WSL): `touch /mnt/c/tmp.$$ && chmod 600 /mnt/c/tmp.$$ && stat -c %a /mnt/c/tmp.$$`
+should print `600`, not `777`. Then run `setup.ps1`.
+
+**Prefer not to touch `/etc/wsl.conf`?** You can instead keep the vault inside the WSL
+filesystem at `~/knowledge-vault` (run `./setup.sh` from within WSL). It needs no system
+change, but Obsidian then has to reach it over `\\wsl.localhost\...`, which is
+unsupported and error-prone; mapping it to a drive letter (`net use O: \\wsl.localhost\Ubuntu`)
+helps but is still second-class. The Windows-drive + metadata route above is smoother.
 
 Two more things worth knowing:
 - Vault **writes** are refused on native Windows by design; read-only inspection works anywhere.
@@ -130,11 +163,12 @@ Two more things worth knowing:
 ## What the setup installs
 
 - **Graphify** CLI (via `uv tool install graphifyy`) + the `/graphify` Claude skill.
-- **uv** (installed via `pip` if you don't already have it) to manage Graphify.
+- **uv** (installed via `pip`, or the official installer on systems without pip) to manage Graphify.
 - **claude-obsidian** cloned into `./claude-obsidian/` (not vendored into this repo).
-- A **vault** at `~/knowledge-vault`, initialized and health-checked.
+- A **vault**, initialized and health-checked.
 
-Nothing requires root, and no system settings are changed.
+No root is required for the tools, and the scripts change no system settings on their
+own (the one-time Windows metadata step above is something you run yourself).
 
 ---
 

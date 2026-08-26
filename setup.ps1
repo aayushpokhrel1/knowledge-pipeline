@@ -50,18 +50,31 @@ if (Test-Path (Join-Path $CoDir '.git')) {
   git clone --depth 1 $CoUrl $CoDir
 }
 
-# --- Vault (delegated to WSL) ---------------------------------------------
+# --- Vault (built in WSL, stored on the Windows drive) --------------------
+# The vault lives on the Windows drive so Obsidian can open it as a local folder,
+# but it is written to from WSL, which requires POSIX metadata on the mount.
 $wsl = Get-Command wsl -ErrorAction SilentlyContinue
 if ($wsl) {
-  Say 'Building the vault inside WSL (writes need a POSIX filesystem)'
-  # Run setup.sh from within WSL against the WSL home filesystem.
   $repoWsl = (wsl wslpath -a "$RepoDir").Trim()
-  # Graphify is already installed natively above, so skip it inside WSL and just
-  # build the vault on the POSIX filesystem.
-  wsl bash -lc "cd '$repoWsl' && KP_SKIP_GRAPHIFY=1 VAULT_DIR=`$HOME/knowledge-vault CO_DIR='$repoWsl/claude-obsidian' bash ./setup.sh"
+  $meta = (wsl bash -lc "grep -qE '/mnt/[a-z]+ .*metadata' /proc/mounts && echo yes || echo no").Trim()
+  if ($meta -eq 'yes') {
+    $winVault = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'Knowledge-Vault'
+    $vaultWsl = (wsl wslpath -a "$winVault").Trim()
+    Say "Metadata enabled; building the vault on your Windows drive at $winVault"
+    # Graphify is already installed natively above, so skip it inside WSL.
+    wsl bash -lc "cd '$repoWsl' && KP_SKIP_GRAPHIFY=1 VAULT_DIR='$vaultWsl' CO_DIR='$repoWsl/claude-obsidian' bash ./setup.sh"
+    Say "Open this folder in Obsidian: $winVault"
+  } else {
+    Warn 'WSL is missing POSIX metadata on the Windows mount, needed so Obsidian and the'
+    Warn 'plugin can share one vault on your Windows drive. Enable it once:'
+    Warn '  1) PowerShell:  wsl -u root'
+    Warn '  2) WSL:         printf ''[automount]\noptions = "metadata"\n'' > /etc/wsl.conf ; exit'
+    Warn '  3) PowerShell:  wsl --shutdown'
+    Warn 'Then re-run ./setup.ps1 to build the vault. (See README > Windows setup.)'
+  }
 } else {
   Warn 'WSL not found. Install it with:  wsl --install'
-  Warn 'Then re-run this script, or run ./setup.sh inside WSL to build the vault.'
+  Warn 'Then do the one-time metadata step (README > Windows setup) and re-run this script.'
 }
 
 Say 'Setup complete.'

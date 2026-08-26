@@ -100,11 +100,19 @@ fi
 
 # --- Vault (the part that truly needs a POSIX filesystem) ------------------
 case "$VAULT_DIR" in
-  /mnt/*) if [ "$IS_WSL" = 1 ]; then
-            warn "VAULT_DIR is on a Windows mount (/mnt/...). Writes there fail with RESULT_DRIFT."
-            warn "Use a path inside WSL, e.g. \$HOME/knowledge-vault. Skipping vault creation."
-            VAULT_SKIP=1
-          fi ;;
+  /mnt/*)
+    # A vault on the Windows drive is fine *if* the mount exposes POSIX metadata;
+    # otherwise the plugin's safe-write check fails with RESULT_DRIFT.
+    DRIVE_MNT="$(printf '%s' "$VAULT_DIR" | sed -E 's#^(/mnt/[a-z]+).*#\1#')"
+    if grep -qE "[[:space:]]${DRIVE_MNT}[[:space:]].*metadata" /proc/mounts 2>/dev/null; then
+      say "$DRIVE_MNT has POSIX metadata enabled; the vault can live on the Windows drive."
+    else
+      warn "VAULT_DIR is on a Windows mount ($DRIVE_MNT) without POSIX metadata; writes would fail (RESULT_DRIFT)."
+      warn "Enable it once (WSL as root):  printf '[automount]\\noptions = \"metadata\"\\n' > /etc/wsl.conf"
+      warn "then run 'wsl --shutdown' from PowerShell and re-run this script."
+      warn "Or use a path inside WSL, e.g. \$HOME/knowledge-vault. Skipping vault creation."
+      VAULT_SKIP=1
+    fi ;;
 esac
 
 if [ "${VAULT_SKIP:-0}" != 1 ]; then
@@ -135,6 +143,13 @@ if [ "${VAULT_SKIP:-0}" != 1 ]; then
 fi
 
 # --- Done ------------------------------------------------------------------
+# Show the vault location the way the user opens it in Obsidian.
+case "$VAULT_DIR" in
+  /mnt/*)  # Windows drive: present as a normal C:\ path
+    OBSIDIAN_PATH="$(printf '%s' "$VAULT_DIR" | sed -E 's#^/mnt/([a-z])/#\U\1:/#; s#/#\\#g')" ;;
+  *)       OBSIDIAN_PATH="$VAULT_DIR" ;;
+esac
+
 say "Setup complete."
 cat <<EOF
 
@@ -142,8 +157,7 @@ Next steps
 ----------
 1. Install Obsidian (free): https://obsidian.md
 2. Open the vault in Obsidian -> "Open folder as vault":
-     $VAULT_DIR
-   (On Windows/WSL, that's \\\\wsl.localhost\\<Distro>$VAULT_DIR )
+     $OBSIDIAN_PATH
 3. Let Claude maintain the vault (from this write-capable shell):
      cd "$VAULT_DIR"
      claude --plugin-dir "$CO_DIR"
