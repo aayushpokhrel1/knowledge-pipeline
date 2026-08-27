@@ -121,6 +121,37 @@ and a queryable `graph.json`.
 
 ---
 
+## Using it day to day
+
+Graphify and Obsidian split cleanly, and it helps to keep the split in mind:
+
+- **Graphify is per repo.** Run `graphify .` in each project; its `graphify-out/` describes
+  that codebase and is disposable (gitignore it, regenerate anytime). It answers
+  "how does *this* code work?"
+- **Obsidian is one vault for everything.** It holds knowledge you write and keep: design
+  decisions and their *why*, non-obvious gotchas, research, and cross-project learnings, the
+  things that would be lost if you regenerated the code.
+
+Rule of thumb: **if regenerating the code would recreate it, it's Graphify; if it would be
+lost, it's Obsidian.**
+
+Organize the vault with one folder per project:
+
+```
+Knowledge-Vault/Projects/<name>/index.md    # Key decisions / Gotchas / Research
+```
+
+To also park a project's code map in the vault (optional), export the graph into that folder:
+
+```bash
+graphify . --obsidian --obsidian-dir "<vault>/Projects/<name>/graph"
+```
+
+Point `--obsidian-dir` at a per-project **subfolder**, not the vault root, it writes one
+note per node and would otherwise clutter the vault.
+
+---
+
 ## Windows setup (do this once)
 
 On Windows the vault should live on your **Windows drive** (so Obsidian opens it as a
