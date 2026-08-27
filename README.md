@@ -204,21 +204,21 @@ claude plugin install ponytail@ponytail           # ponytail (restart Claude Cod
   `LOCAL PATCH` marker near the top).
 - **ponytail is always on once installed.** If you want it quiet for a session, run
   `/ponytail off`.
-- **caveman** ([juliusbrussee/caveman](https://github.com/juliusbrussee/caveman)) is a
-  related token-saving tool, worth knowing before you pick. It has two halves. The **skill**
-  (MIT) compresses Claude's *output* into terse "caveman speak" (about 65% fewer output
-  tokens, but it adds ~1 to 1.5k input tokens per turn, so net savings shrink on already-terse
-  work); note this trades against the prose-quality goal humanizer serves. The **proxy**
-  (BSL-1.1, source-available and free for first-party use) is the more interesting half: it
-  runs locally, compresses what the agent *reads* before provider calls (about 33% fewer input
-  tokens in their benchmark), and keeps byte-exact recovery. It is heavier (a local background
-  service wrapping the agent) and not wired into the `KP_WITH_SKILLS` installer. The MIT
-  **skill** is low-risk: `npx skills add JuliusBrussee/caveman`. The **proxy** is not:
-  `caveman claude` runs `caveman enable claude`, which injects caveman hooks into every event
-  in `~/.claude/settings.json` and reroutes `ANTHROPIC_BASE_URL`. On Windows, Claude Code runs
-  hooks through bash while caveman writes them in PowerShell syntax, so every tool call broke
-  and the session had to be recovered by clearing `hooks` in `settings.json` from an external
-  editor. If you try the proxy, back up `~/.claude/settings.json` and `~/.claude.json` first.
+- **caveman** ([juliusbrussee/caveman](https://github.com/juliusbrussee/caveman)) was
+  evaluated and **not adopted**, for two reasons worth recording. First, on a **Claude
+  subscription** (what Claude Code uses by default) its proxy saves nothing: caveman's own
+  status reports that "streaming turns and Claude Pro/Max sessions pass through uncompressed,"
+  and only non-streaming **API-key** traffic is compressed, so a subscription user gets no
+  savings while adding a local proxy as a single point of failure. Second, the proxy
+  integration is invasive: `caveman claude` runs `caveman enable claude`, which injects hooks
+  into every event in `~/.claude/settings.json` and reroutes `ANTHROPIC_BASE_URL`; on Windows,
+  Claude Code runs hooks through bash while caveman writes them in PowerShell syntax, so every
+  tool call broke and the session had to be recovered by clearing `hooks` from an external
+  editor. The MIT **skill** (`npx skills add JuliusBrussee/caveman`) is harmless if you want
+  terse replies, but it compresses *output* (trading against humanizer) and saves no input
+  tokens. If you ever run **API-key, non-streaming** workloads the proxy may be worth a careful
+  look, with a `settings.json` backup first; for subscription Claude Code use it is not. Not in
+  the `KP_WITH_SKILLS` installer.
 
 ---
 
