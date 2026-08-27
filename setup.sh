@@ -8,6 +8,7 @@
 #   CO_DIR             where to clone claude-obsidian (default: ./claude-obsidian)
 #   KP_SKIP_GRAPHIFY=1 skip the Graphify install (e.g. already installed on the host OS)
 #   KP_NO_REMOTE_UV=1  never fetch uv from the network; only use pip/pipx/existing tools
+#   KP_WITH_SKILLS=1   also install the optional writing/code-hygiene skills (humanizer, ponytail)
 #
 set -uo pipefail   # note: no -e; Graphify install is best-effort, the vault step must still run
 
@@ -88,6 +89,32 @@ if [ "${KP_SKIP_GRAPHIFY:-0}" = 1 ]; then
   say "Skipping Graphify install (KP_SKIP_GRAPHIFY=1)"
 else
   install_graphify
+fi
+
+# --- Optional skills (opt-in) ---------------------------------------------
+# Two third-party Claude Code skills that pair well with a knowledge stack:
+#   humanizer  a skill that strips AI-tells from prose (model-invoked or /humanizer)
+#   ponytail   a plugin that keeps generated code minimal (auto-active each session)
+# Opt-in because they pull from external repos and need node/npx and the Claude CLI.
+install_skills() {
+  if command -v npx >/dev/null 2>&1; then
+    say "Installing the humanizer skill (npx skills add blader/humanizer)"
+    npx -y skills add blader/humanizer --global || warn "humanizer install failed; run it manually later"
+  else
+    warn "node/npx not found; skipping humanizer. Install Node.js, then: npx skills add blader/humanizer --global"
+  fi
+
+  if command -v claude >/dev/null 2>&1; then
+    say "Installing the ponytail plugin (Claude Code marketplace)"
+    claude plugin marketplace add DietrichGebert/ponytail 2>/dev/null || true
+    claude plugin install ponytail@ponytail || warn "ponytail install failed; run it manually later"
+  else
+    warn "claude CLI not found; skipping ponytail. Install Claude Code, then: claude plugin install ponytail@ponytail"
+  fi
+}
+
+if [ "${KP_WITH_SKILLS:-0}" = 1 ]; then
+  install_skills
 fi
 
 # --- claude-obsidian -------------------------------------------------------
