@@ -213,4 +213,13 @@ Knowledge Pipeline is just glue and docs. All credit to the underlying projects:
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+This project is licensed under the MIT License — see [LICENSE](LICENSE) for details.
+
+MIT is a permissive open-source license that allows you to:
+- ✅ Use this software for personal, commercial, and private purposes
+- ✅ Modify and distribute the software
+- ✅ Include it in proprietary applications
+
+With just one requirement: include a copy of the license and copyright notice.
+
+**Copyright © 2026 Aayush Pokhrel**
