@@ -152,6 +152,71 @@ note per node and would otherwise clutter the vault.
 
 ---
 
+## Optional: companion Claude skills
+
+The knowledge stack is about *keeping* and *understanding* knowledge. Two more Claude
+Code skills round out the *producing* side, so this repo can also set them up for you in
+one step. They are independent of the vault and each other; install them only if you want
+them.
+
+| Skill | What it is | What it's for | How it fires |
+|-------|-----------|---------------|--------------|
+| **[humanizer](https://github.com/blader/humanizer)** | A skill (also packaged as a plugin) that rewrites AI-sounding prose using 35 patterns from Wikipedia's "Signs of AI writing," without changing the facts. | Making notes, READMEs, cover letters, and docs read like a person wrote them, not a chatbot. | On demand. Claude invokes it when a task is about editing prose, or you call `/humanizer` explicitly. |
+| **[ponytail](https://github.com/DietrichGebert/ponytail)** | A plugin that enforces a "laziest senior dev" ruleset: reuse before writing, stdlib before dependencies, no unrequested abstractions. | Keeping generated code minimal and reviewable, which also means less for you (and any delegated worker) to check. | Automatically. A `SessionStart` hook activates it in every new session at `full` intensity; tune it with `/ponytail [lite\|full\|ultra\|off]`. |
+
+**Why they pair well with a knowledge stack.** A vault compounds only if what lands in it
+is clean: humanizer keeps captured prose honest and readable, and ponytail keeps any code
+Claude writes small enough that the *why* (which is what belongs in the vault) stays visible
+instead of buried under boilerplate.
+
+### Install them
+
+With the setup script (opt-in, since they pull from external repos and need Node and the
+Claude CLI):
+
+```bash
+# Linux / macOS / WSL
+KP_WITH_SKILLS=1 ./setup.sh
+```
+
+```powershell
+# Windows
+$env:KP_WITH_SKILLS = '1'; ./setup.ps1
+```
+
+Or by hand:
+
+```bash
+npx skills add blader/humanizer --global          # humanizer (restart not needed)
+claude plugin marketplace add DietrichGebert/ponytail
+claude plugin install ponytail@ponytail           # ponytail (restart Claude Code to load)
+```
+
+### Notes worth knowing
+
+- **humanizer is a plain `SKILL.md`** (no hooks, no runtime code beyond a dev-time
+  validator), so it is easy to read before you trust it. Its installer's security panel
+  shows Socket "Safe / 0 alerts" but Snyk "High Risk"; reading the contents, the Snyk rating
+  is a repo-level false positive, not anything the skill executes.
+- **This repo ships a local tweak to humanizer:** its em/en-dash rule (§14) is made an
+  absolute ban with no writing-sample exception, matching a personal style rule. A
+  `npx skills update` overwrites it, so re-apply after updating (the file carries a
+  `LOCAL PATCH` marker near the top).
+- **ponytail is always on once installed.** If you want it quiet for a session, run
+  `/ponytail off`.
+- **caveman** ([juliusbrussee/caveman](https://github.com/juliusbrussee/caveman)) is a
+  related token-saving tool, worth knowing before you pick. It has two halves. The **skill**
+  (MIT) compresses Claude's *output* into terse "caveman speak" (about 65% fewer output
+  tokens, but it adds ~1 to 1.5k input tokens per turn, so net savings shrink on already-terse
+  work); note this trades against the prose-quality goal humanizer serves. The **proxy**
+  (BSL-1.1, source-available and free for first-party use) is the more interesting half: it
+  runs locally, compresses what the agent *reads* before provider calls (about 33% fewer input
+  tokens in their benchmark), and keeps byte-exact recovery. It is heavier (a local background
+  service wrapping the agent) and not wired into the `KP_WITH_SKILLS` installer. Try it with
+  `npx skills add JuliusBrussee/caveman` (skill) or `caveman setup --install` (full proxy).
+
+---
+
 ## Windows setup (do this once)
 
 On Windows the vault should live on your **Windows drive** (so Obsidian opens it as a
@@ -197,6 +262,8 @@ Two more things worth knowing:
 - **uv** (installed via `pip`, or the official installer on systems without pip) to manage Graphify.
 - **claude-obsidian** cloned into `./claude-obsidian/` (not vendored into this repo).
 - A **vault**, initialized and health-checked.
+- **Optional, with `KP_WITH_SKILLS=1`:** the [companion skills](#optional-companion-claude-skills)
+  humanizer and ponytail.
 
 No root is required for the tools, and the scripts change no system settings on their
 own (the one-time Windows metadata step above is something you run yourself).
@@ -210,6 +277,8 @@ Knowledge Pipeline is just glue and docs. All credit to the underlying projects:
 - [Obsidian](https://obsidian.md)
 - [Graphify](https://github.com/Graphify-Labs/graphify) (`graphifyy` on PyPI)
 - [claude-obsidian](https://github.com/AgriciDaniel/claude-obsidian) by AgriciDaniel (MIT)
+- [humanizer](https://github.com/blader/humanizer) by blader (MIT), optional companion skill
+- [ponytail](https://github.com/DietrichGebert/ponytail) by Dietrich Gebert (MIT), optional companion plugin
 
 ## License
 

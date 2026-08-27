@@ -42,6 +42,28 @@ if (Test-Path $graphify) { & $graphify install }
 elseif (Get-Command graphify -ErrorAction SilentlyContinue) { graphify install }
 else { Warn 'graphify not on PATH yet. Open a new terminal and run: graphify install' }
 
+# --- Optional skills (opt-in) ---------------------------------------------
+# Set $env:KP_WITH_SKILLS = '1' to also install the two writing/code-hygiene skills:
+#   humanizer  strips AI-tells from prose (model-invoked or /humanizer)
+#   ponytail   keeps generated code minimal (auto-active each session)
+# Opt-in: they pull from external repos and need node/npx and the Claude CLI.
+if ($env:KP_WITH_SKILLS -eq '1') {
+  if (Get-Command npx -ErrorAction SilentlyContinue) {
+    Say 'Installing the humanizer skill (npx skills add blader/humanizer)'
+    try { npx -y skills add blader/humanizer --global } catch { Warn 'humanizer install failed; run it manually later' }
+  } else {
+    Warn 'node/npx not found; skipping humanizer. Install Node.js, then: npx skills add blader/humanizer --global'
+  }
+
+  if (Get-Command claude -ErrorAction SilentlyContinue) {
+    Say 'Installing the ponytail plugin (Claude Code marketplace)'
+    try { claude plugin marketplace add DietrichGebert/ponytail } catch { }
+    try { claude plugin install ponytail@ponytail } catch { Warn 'ponytail install failed; run it manually later' }
+  } else {
+    Warn 'claude CLI not found; skipping ponytail. Install Claude Code, then: claude plugin install ponytail@ponytail'
+  }
+}
+
 # --- claude-obsidian -------------------------------------------------------
 if (Test-Path (Join-Path $CoDir '.git')) {
   Say "claude-obsidian already present at $CoDir (skipping clone)"
