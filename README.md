@@ -212,8 +212,13 @@ claude plugin install ponytail@ponytail           # ponytail (restart Claude Cod
   (BSL-1.1, source-available and free for first-party use) is the more interesting half: it
   runs locally, compresses what the agent *reads* before provider calls (about 33% fewer input
   tokens in their benchmark), and keeps byte-exact recovery. It is heavier (a local background
-  service wrapping the agent) and not wired into the `KP_WITH_SKILLS` installer. Try it with
-  `npx skills add JuliusBrussee/caveman` (skill) or `caveman setup --install` (full proxy).
+  service wrapping the agent) and not wired into the `KP_WITH_SKILLS` installer. The MIT
+  **skill** is low-risk: `npx skills add JuliusBrussee/caveman`. The **proxy** is not:
+  `caveman claude` runs `caveman enable claude`, which injects caveman hooks into every event
+  in `~/.claude/settings.json` and reroutes `ANTHROPIC_BASE_URL`. On Windows, Claude Code runs
+  hooks through bash while caveman writes them in PowerShell syntax, so every tool call broke
+  and the session had to be recovered by clearing `hooks` in `settings.json` from an external
+  editor. If you try the proxy, back up `~/.claude/settings.json` and `~/.claude.json` first.
 
 ---
 
