@@ -222,6 +222,57 @@ claude plugin install ponytail@ponytail           # ponytail (restart Claude Cod
 
 ---
 
+## Optional: design skills (frontend)
+
+The companion skills above cover prose (humanizer) and code restraint (ponytail).
+Frontend design is a third producing lane, and Claude Code ships nothing opinionated
+for it by default. This is the design set recommended alongside the stack. Unlike the
+companion skills, **the setup script does not install these**: they are plain
+`SKILL.md` folders you drop into `~/.claude/skills/`, listed here with the reasoning so
+the set stays coherent.
+
+The rule that keeps it sane: **one or two generalists, then narrow specialists**, never
+a pile of generalists. Three skills that all fire on "design me a landing page" just
+compete and hand you conflicting direction.
+
+| Skills | Lane | Role |
+|--------|------|------|
+| **impeccable** | Generalist | Broad build / redesign / audit / critique: hierarchy, a11y, typography, tokens, motion. |
+| **ui-ux-pro-max** | Generalist | UI/UX intelligence plus searchable datasets (styles, palettes, font pairings, UX guidelines, charts, stacks). |
+| **animate**, **review-animations**, **improve-animations**, **find-animation-opportunities**, **animation-vocabulary** | Motion | Emil Kowalski's animation craft: build motion, audit it, find where it is missing, name the effect you mean. |
+| **apple-design**, **pick-ui-library**, **prototype**, **ask-sonner** | Specialists | Apple-style gesture/spring UI, choosing a library over custom code, multi-version prototyping, Sonner toasts. |
+
+The two generalists were already in place; the nine specialists come from
+[emilkowalski/skills](https://github.com/emilkowalski/skills). Animation was the real
+gap (neither generalist specializes there), so those add rather than collide.
+
+### Install them (by hand)
+
+They are portable Markdown, so no CLI or config change is involved:
+
+```bash
+git clone --depth 1 https://github.com/emilkowalski/skills.git
+# copy the folders you want from skills/skills/ into ~/.claude/skills/
+cp -r skills/skills/{animate,review-animations,improve-animations,\
+find-animation-opportunities,animation-vocabulary,apple-design,\
+pick-ui-library,prototype,ask-sonner} ~/.claude/skills/
+```
+
+Claude Code picks them up on the next session.
+
+### Not adopted, and why
+
+- **taste-skill** ([leonxlnx/taste-skill](https://github.com/leonxlnx/taste-skill))'s
+  flagship `design-taste-frontend`, and Emil's **emil-design-eng**, are both *general*
+  design skills. Either one makes a third generalist competing with impeccable and
+  ui-ux-pro-max on the same triggers, so both were skipped. taste-skill's dials idea
+  (VARIANCE / MOTION / DENSITY) and its hard anti-"AI tell" ban list are worth a look if
+  you ever want to *swap out* a generalist rather than stack one on top.
+- **animate-expo** (React Native) and **write-swift** (Swift/iOS) are out of scope for
+  web work. Skipped, not judged.
+
+---
+
 ## Windows setup (do this once)
 
 On Windows the vault should live on your **Windows drive** (so Obsidian opens it as a
@@ -284,6 +335,7 @@ Knowledge Pipeline is just glue and docs. All credit to the underlying projects:
 - [claude-obsidian](https://github.com/AgriciDaniel/claude-obsidian) by AgriciDaniel (MIT)
 - [humanizer](https://github.com/blader/humanizer) by blader (MIT), optional companion skill
 - [ponytail](https://github.com/DietrichGebert/ponytail) by Dietrich Gebert (MIT), optional companion plugin
+- [emilkowalski/skills](https://github.com/emilkowalski/skills) by Emil Kowalski (MIT), optional design/animation skills
 
 ## License
 
