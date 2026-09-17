@@ -85,10 +85,23 @@ install_graphify() {
   fi
 }
 
+# Install the query-first ENFORCEMENT hooks into ~/.claude. These DENY Grep/Glob in
+# any repo that has a graphify graph until `graphify query/path/explain` has run that
+# turn, so the graph is actually used and not routed around. Idempotent; the shared
+# Python installer preserves any unrelated hooks already present. See hooks/README.
+install_graphify_hooks() {
+  say "Installing the graphify query-first hooks (Claude Code)"
+  "$PY" "$REPO_DIR/hooks/register-hooks.py" \
+    || warn "hook install failed; run it later with: python hooks/register-hooks.py"
+}
+
 if [ "${KP_SKIP_GRAPHIFY:-0}" = 1 ]; then
-  say "Skipping Graphify install (KP_SKIP_GRAPHIFY=1)"
+  # Also skips the hooks: when Graphify lives on the host OS (the Windows->WSL case),
+  # the host installer owns ~/.claude, so setup.ps1 installs the hooks natively.
+  say "Skipping Graphify install and hooks (KP_SKIP_GRAPHIFY=1)"
 else
   install_graphify
+  install_graphify_hooks
 fi
 
 # --- Optional skills (opt-in) ---------------------------------------------

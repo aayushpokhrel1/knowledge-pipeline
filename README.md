@@ -150,6 +150,32 @@ graphify . --obsidian --obsidian-dir "<vault>/Projects/<name>/graph"
 Point `--obsidian-dir` at a per-project **subfolder**, not the vault root, it writes one
 note per node and would otherwise clutter the vault.
 
+### Query-first enforcement (so the graph is actually used)
+
+A knowledge graph that Claude routes around is dead weight. Setup installs four small
+Claude Code hooks (into `~/.claude/`) that make "query the graph before browsing raw code"
+an enforced rule, not a suggestion:
+
+| Hook | Event | What it does |
+|------|-------|--------------|
+| `graphify-nudge.sh` | `PreToolUse` (Grep/Glob) | **DENIES** the search in any repo that has a `graphify-out/graph.json`, until a `graphify query`/`path`/`explain` has run **this turn**. |
+| `graphify-mark.sh` | `PostToolUse` (Bash) | Records that the graph was consulted when a graphify read command runs, which unblocks Grep/Glob for the rest of the turn. |
+| `graphify-reset.sh` | `UserPromptSubmit` | Clears that per-turn marker, so each new question requires a fresh consult. |
+| `graphify-banner.sh` | `SessionStart` | Announces the graph and the rule at the top of each session in a repo that has one. |
+
+Notes:
+- **Scoped to graph repos only.** In any project without a `graphify-out/graph.json` the
+  hooks are silent and never block anything.
+- **`Read` is deliberately not hard-denied.** A graph query returns `file:line`; reading
+  that line is the intended next step, so blocking `Read` would break the flow the graph
+  sets up. `Read` stays a nudge; `Grep`/`Glob` (broad exploration) are the enforced gate.
+- **Escape hatch for a genuine exact-string / filename search** (where grep beats the
+  graph): `touch` the per-turn marker named in the deny message. It is visible in the
+  transcript, so skipping the graph is a conscious, logged act, not a silent default.
+- **Idempotent + additive.** Re-running setup preserves any unrelated hooks you already
+  have (e.g. delegate or ponytail hooks). The scripts and the shared installer live in
+  [`hooks/`](hooks/); install them by hand any time with `python hooks/register-hooks.py`.
+
 ---
 
 ## Optional: companion Claude skills
@@ -316,6 +342,9 @@ Two more things worth knowing:
 
 - **Graphify** CLI (via `uv tool install graphifyy`) + the `/graphify` Claude skill.
 - **uv** (installed via `pip`, or the official installer on systems without pip) to manage Graphify.
+- The **[query-first enforcement hooks](#query-first-enforcement-so-the-graph-is-actually-used)**
+  into `~/.claude/` (skipped with `KP_SKIP_GRAPHIFY=1`, which the Windows->WSL handoff sets so
+  the hooks install once, natively).
 - **claude-obsidian** cloned into `./claude-obsidian/` (not vendored into this repo).
 - A **vault**, initialized and health-checked.
 - **Optional, with `KP_WITH_SKILLS=1`:** the [companion skills](#optional-companion-claude-skills)

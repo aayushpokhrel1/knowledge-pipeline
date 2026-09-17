@@ -42,6 +42,15 @@ if (Test-Path $graphify) { & $graphify install }
 elseif (Get-Command graphify -ErrorAction SilentlyContinue) { graphify install }
 else { Warn 'graphify not on PATH yet. Open a new terminal and run: graphify install' }
 
+# Query-first ENFORCEMENT hooks -> ~/.claude. They DENY Grep/Glob in any repo with a
+# graphify graph until `graphify query/path/explain` has run that turn, so the graph is
+# used, not routed around. Installed natively here (native Windows Claude Code reads
+# %USERPROFILE%\.claude), so the WSL handoff below passes KP_SKIP_GRAPHIFY=1 and does
+# not re-install them into WSL's ~/.claude. Idempotent. See hooks/README.
+Say 'Installing the graphify query-first hooks (Claude Code)'
+try { python (Join-Path $RepoDir 'hooks\register-hooks.py') }
+catch { Warn 'hook install failed; run it later with: python hooks\register-hooks.py' }
+
 # --- Optional skills (opt-in) ---------------------------------------------
 # Set $env:KP_WITH_SKILLS = '1' to also install the two writing/code-hygiene skills:
 #   humanizer  strips AI-tells from prose (model-invoked or /humanizer)
