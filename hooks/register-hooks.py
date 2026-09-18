@@ -19,14 +19,19 @@ import shutil
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SCRIPTS = ["graphify-nudge.sh", "graphify-mark.sh", "graphify-reset.sh", "graphify-banner.sh"]
+SCRIPTS = [
+    "graphify-nudge.sh", "graphify-read-nudge.sh", "graphify-mark.sh",
+    "graphify-reset.sh", "graphify-banner.sh", "graphify-audit.sh",
+]
 
 # (event, matcher-or-None, script) -> what each hook registration looks like.
 REGISTRATIONS = [
-    ("PreToolUse", "Grep|Glob", "graphify-nudge.sh"),   # DENY raw browsing until the graph is queried this turn
-    ("PostToolUse", "Bash", "graphify-mark.sh"),        # mark "graph consulted" when a graphify read ran
-    ("UserPromptSubmit", None, "graphify-reset.sh"),    # new turn -> require a fresh consult
-    ("SessionStart", None, "graphify-banner.sh"),       # announce the graph + the enforced rule
+    ("PreToolUse", "Grep|Glob", "graphify-nudge.sh"),        # DENY broad search until the graph is queried this turn
+    ("PreToolUse", "Read", "graphify-read-nudge.sh"),        # DENY exploration reads of code files (scoped; grace + non-code exempt)
+    ("PostToolUse", "Bash", "graphify-mark.sh"),             # mark "graph consulted" when a graphify read ran
+    ("UserPromptSubmit", None, "graphify-reset.sh"),         # new turn -> require a fresh consult
+    ("SessionStart", None, "graphify-banner.sh"),            # announce the graph + the enforced rule
+    ("Stop", None, "graphify-audit.sh"),                     # backstop: log turns that browsed code without a query
 ]
 
 
