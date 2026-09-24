@@ -331,7 +331,14 @@ change, but Obsidian then has to reach it over `\\wsl.localhost\...`, which is
 unsupported and error-prone; mapping it to a drive letter (`net use O: \\wsl.localhost\Ubuntu`)
 helps but is still second-class. The Windows-drive + metadata route above is smoother.
 
-Two more things worth knowing:
+Three more things worth knowing:
+- **Never put note text inside a `wsl.exe` command line.** Windows re-quotes the wrapper on the
+  way across (`'...'` arrives as `"..."`), so the body is expanded by the shell and a heredoc,
+  even `<<"EOF"`, does not protect it: backticks in your prose become command substitution and
+  actually run, and an apostrophe breaks the command. Write the content to a file first and have
+  WSL read that file, so only literal paths cross the boundary:
+  `wsl -d Ubuntu -- bash -lc 'cat /mnt/c/tmp/note.md >> /mnt/c/.../index.md'`. The same applies to
+  variables: compute them inside the WSL script.
 - Vault **writes** are refused on native Windows by design; read-only inspection works anywhere.
 - A write's approval hash binds to the environment that produced it, so run the
   dry-run and the apply in the **same** shell.
