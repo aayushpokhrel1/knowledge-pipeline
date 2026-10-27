@@ -8,7 +8,17 @@ An opinionated setup for a local-first knowledge stack: Obsidian + Graphify + cl
 | --- | --- |
 | `README.md` | What you get, why, and the quick start |
 | `hooks/` | Claude Code hooks registered by the setup scripts |
+| `skills/project-scaffold/` | The `/project-scaffold` skill: creates a new project's doc structure, guards and vault folder. Installed into `~/.claude/skills/` by the setup scripts as a USER-LEVEL skill, linked at this repo so a `git pull` updates it in place |
+| `commands/project-scaffold.md` | The slash command that invokes that skill. Installed into `~/.claude/commands/` the same way |
 | `claude-obsidian/` | A VENDORED CLONE of a third-party repo. Do not restructure it or add docs to it |
+
+**Nothing in `skills/` may hardcode a path.** It runs on more than one machine, so the vault
+location, whether vault writes need WSL, and the WSL distro are resolved at runtime and cached
+in `~/.claude/project-scaffold.config.json`, which the setup scripts seed because they have
+already worked the vault out. A hardcoded `C:\Users\<name>\...` is a bug, not a detail.
+
+**It is a user-level skill, not a plugin, on purpose.** Packaging it as a plugin would list it
+a second time under a plugin namespace beside the user-level copy, and the two would collide.
 
 This repo's job is **setup**, so its README is the product. It installs the vault tooling that the rule below depends on.
 

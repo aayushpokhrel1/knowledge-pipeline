@@ -30,6 +30,34 @@ claude-obs →  lets Claude WRITE into that home    (ingest, link, cite, query)
 Graphify can even export its findings straight into an Obsidian vault (`--obsidian`),
 so the two ends meet.
 
+### Plus one skill of this repo's own: `/project-scaffold`
+
+The three tools above are other people's. This repo also ships one skill, installed into
+`~/.claude/skills/` by the setup scripts:
+
+**`/project-scaffold`** creates a new project's documentation structure in one pass, so a
+fact has an obvious home from day one instead of piling up in whichever file is open. It
+reads the repo first, asks only what it cannot detect, then writes `README.md`,
+`PRODUCT.md`, `DESIGN.md` (only when there is a UI), `CLAUDE.md`, `docs/OPERATIONS.md` and
+the `docs/superpowers/{specs,plans}/` homes, filled from your answers rather than left as
+stubs. It also adds the guards that keep them honest: the `.gitignore` lines, a test that
+fails when `HANDOVER.md` grows past 200 lines or sprouts dated headings, and the matching
+folder in your vault.
+
+It is careful about three things worth knowing:
+
+- **It never overwrites.** An existing file is reported as present and left alone.
+- **It honours a decision you already wrote down.** A `CLAUDE.md` saying "there is
+  deliberately no `DESIGN.md`" means that file is skipped, not helpfully created.
+- **Nothing is hardcoded.** The vault location, whether vault writes need WSL, and the WSL
+  distro are resolved per machine and cached in `~/.claude/project-scaffold.config.json`,
+  which setup seeds for you. `KNOWLEDGE_VAULT` overrides it if your vault lives somewhere
+  unusual.
+
+It installs as a **user-level skill, not a plugin**, so it works in every project on the
+machine without being added per repo. The setup scripts link it at this checkout (a symlink,
+or a junction on Windows), so `git pull` updates the installed skill in place.
+
 ---
 
 ## Quick start

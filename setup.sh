@@ -104,6 +104,75 @@ else
   install_graphify_hooks
 fi
 
+# --- project-scaffold (this repo's own skill) ------------------------------
+# Installs skills/project-scaffold and its /project-scaffold command into
+# ~/.claude as a USER-LEVEL skill, not a plugin: a plugin copy would show up
+# alongside the user-level one under a second name and the two would collide.
+#
+# Symlinked at this repo so `git pull` updates the installed skill in place,
+# with a copy as the fallback for a filesystem that refuses symlinks (Windows
+# without Developer Mode). Not opt-in, unlike install_skills below: this one
+# ships with the repo and pulls nothing from the network.
+
+# Replace $2 with a link to $1. An existing symlink is ours to replace; a real
+# file or directory is the user's, so it is moved aside rather than deleted.
+link_or_copy() {
+  src="$1"; dst="$2"
+  [ -e "$src" ] || { warn "missing $src; skipping"; return 1; }
+  if [ -L "$dst" ]; then
+    rm -f "$dst"
+  elif [ -e "$dst" ]; then
+    # Back up OUTSIDE ~/.claude/skills. A "project-scaffold.bak-<stamp>/" left in there
+    # is itself read as a skill, so Claude lists a second, stale copy of this skill under
+    # the backup's name. Confirmed on 2026-10-26.
+    bakdir="$HOME/.claude/.backups"
+    mkdir -p "$bakdir"
+    bak="$bakdir/$(basename "$dst").bak-$(date -u +%Y%m%d%H%M%S)"
+    warn "$dst already exists and is not a link; moving it to $bak"
+    mv "$dst" "$bak" || { warn "could not move it aside; skipping"; return 1; }
+  fi
+  if ln -s "$src" "$dst" 2>/dev/null; then
+    printf '    linked %s\n' "$dst"
+  elif cp -R "$src" "$dst"; then
+    printf '    copied %s (symlinks unavailable: re-run this script after a git pull)\n' "$dst"
+  else
+    warn "could not install $dst"
+    return 1
+  fi
+}
+
+install_project_scaffold() {
+  say "Installing the project-scaffold skill into ~/.claude"
+  CLAUDE_DIR="$HOME/.claude"
+  mkdir -p "$CLAUDE_DIR/skills" "$CLAUDE_DIR/commands"
+  link_or_copy "$REPO_DIR/skills/project-scaffold" "$CLAUDE_DIR/skills/project-scaffold"
+  link_or_copy "$REPO_DIR/commands/project-scaffold.md" "$CLAUDE_DIR/commands/project-scaffold.md"
+
+  # Seed the per-machine config. This script has already resolved the vault, so
+  # the skill never has to probe for it or hardcode a path. Written only when
+  # absent, so a hand-edited vault path is never clobbered.
+  CFG="$CLAUDE_DIR/project-scaffold.config.json"
+  if [ -e "$CFG" ]; then
+    say "Keeping the existing $CFG"
+  else
+    # Dumped by python, not printf: a path containing a backslash produces invalid
+    # JSON by hand ("C:\Users" fails, because \U is not a legal escape), and the
+    # skill then silently falls back to probing. Hit on 2026-10-26.
+    if [ "${VAULT_SKIP:-0}" = 1 ]; then cfg_vault=""; else cfg_vault="$VAULT_DIR"; fi
+    # Paths go through the environment, never the command line, so a path with a
+    # space or a backslash cannot be re-split or re-escaped on the way in.
+    CFG_PATH="$CFG" CFG_VAULT="$cfg_vault" "$PY" -c 'import json, os
+vault = os.environ.get("CFG_VAULT") or None
+with open(os.environ["CFG_PATH"], "w", encoding="utf-8", newline="\n") as f:
+    json.dump({"vault": vault, "wsl": False}, f, indent=2)
+    f.write("\n")'
+    say "Wrote $CFG"
+  fi
+}
+
+# Called after the vault section below, not here: VAULT_SKIP is not decided yet,
+# and the config must record what the vault actually ended up being.
+
 # --- Optional skills (opt-in) ---------------------------------------------
 # Two third-party Claude Code skills that pair well with a knowledge stack:
 #   humanizer  a skill that strips AI-tells from prose (model-invoked or /humanizer)
@@ -180,6 +249,16 @@ if [ "${VAULT_SKIP:-0}" != 1 ]; then
     fi
   fi
   cd "$REPO_DIR"
+fi
+
+# Now that VAULT_DIR / VAULT_SKIP are settled, install the skill and record them.
+# Skipped when the Windows installer is driving: native Windows Claude Code reads
+# %USERPROFILE%\.claude, so setup.ps1 installs the skill there itself and WSL's
+# own ~/.claude would be the wrong home for it (same split as the graphify hooks).
+if [ "${KP_SKIP_SCAFFOLD:-0}" = 1 ]; then
+  say "Skipping the project-scaffold install (KP_SKIP_SCAFFOLD=1; the host installer owns ~/.claude)"
+else
+  install_project_scaffold
 fi
 
 # --- Done ------------------------------------------------------------------

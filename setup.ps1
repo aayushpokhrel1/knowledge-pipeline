@@ -92,9 +92,12 @@ if ($wsl) {
     $winVault = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'Knowledge-Vault'
     $vaultWsl = (wsl wslpath -a "$winVault").Trim()
     Say "Metadata enabled; building the vault on your Windows drive at $winVault"
-    # Graphify is already installed natively above, so skip it inside WSL.
-    wsl bash -lc "cd '$repoWsl' && KP_SKIP_GRAPHIFY=1 VAULT_DIR='$vaultWsl' CO_DIR='$repoWsl/claude-obsidian' bash ./setup.sh"
+    # Graphify is already installed natively above, so skip it inside WSL. Same for
+    # project-scaffold: native Windows Claude Code reads %USERPROFILE%\.claude, so it
+    # is installed natively below rather than into WSL's ~/.claude.
+    wsl bash -lc "cd '$repoWsl' && KP_SKIP_GRAPHIFY=1 KP_SKIP_SCAFFOLD=1 VAULT_DIR='$vaultWsl' CO_DIR='$repoWsl/claude-obsidian' bash ./setup.sh"
     Say "Open this folder in Obsidian: $winVault"
+    $script:WinVaultPath = $winVault
   } else {
     Warn 'WSL is missing POSIX metadata on the Windows mount, needed so Obsidian and the'
     Warn 'plugin can share one vault on your Windows drive. Enable it once:'
@@ -107,6 +110,81 @@ if ($wsl) {
   Warn 'WSL not found. Install it with:  wsl --install'
   Warn 'Then do the one-time metadata step (README > Windows setup) and re-run this script.'
 }
+
+# --- project-scaffold (this repo's own skill) ------------------------------
+# Installed natively, because native Windows Claude Code reads %USERPROFILE%\.claude.
+# A USER-LEVEL skill, not a plugin: a plugin copy would appear under a second name
+# beside the user-level one and the two would collide.
+#
+# A directory junction and a file hard link both work WITHOUT administrator rights or
+# Developer Mode, unlike a symbolic link, and both keep the installed copy pointing at
+# the repo so `git pull` updates it in place. Copy-Item is the last resort.
+function Install-ProjectScaffold {
+  Say 'Installing the project-scaffold skill into ~/.claude'
+  $claudeDir = Join-Path $env:USERPROFILE '.claude'
+  New-Item -ItemType Directory -Force -Path (Join-Path $claudeDir 'skills') | Out-Null
+  New-Item -ItemType Directory -Force -Path (Join-Path $claudeDir 'commands') | Out-Null
+
+  $pairs = @(
+    @{ Src = (Join-Path $RepoDir 'skills\project-scaffold'); Dst = (Join-Path $claudeDir 'skills\project-scaffold'); Kind = 'Junction' },
+    @{ Src = (Join-Path $RepoDir 'commands\project-scaffold.md'); Dst = (Join-Path $claudeDir 'commands\project-scaffold.md'); Kind = 'HardLink' }
+  )
+
+  foreach ($p in $pairs) {
+    if (-not (Test-Path $p.Src)) { Warn "missing $($p.Src); skipping"; continue }
+    $existing = Get-Item $p.Dst -Force -ErrorAction SilentlyContinue
+    if ($existing) {
+      # A junction/link is ours to replace; anything real is the user's, so move it aside.
+      if ($existing.LinkType) {
+        Remove-Item $p.Dst -Force -Recurse -ErrorAction SilentlyContinue
+      } else {
+        # Back up OUTSIDE ~\.claude\skills. A "project-scaffold.bak-<stamp>" folder left
+        # in there is itself read as a skill, so Claude lists a second, stale copy of this
+        # skill under the backup's name. Confirmed on 2026-10-26.
+        $bakDir = Join-Path $claudeDir '.backups'
+        New-Item -ItemType Directory -Force -Path $bakDir | Out-Null
+        $bak = Join-Path $bakDir "$(Split-Path $p.Dst -Leaf).bak-$(Get-Date -Format 'yyyyMMddHHmmss')"
+        Warn "$($p.Dst) already exists and is not a link; moving it to $bak"
+        Move-Item $p.Dst $bak
+      }
+    }
+    try {
+      New-Item -ItemType $p.Kind -Path $p.Dst -Target $p.Src -ErrorAction Stop | Out-Null
+      Write-Host "    linked $($p.Dst)"
+    } catch {
+      try {
+        Copy-Item $p.Src $p.Dst -Recurse -Force -ErrorAction Stop
+        Write-Host "    copied $($p.Dst) (links unavailable: re-run this script after a git pull)"
+      } catch { Warn "could not install $($p.Dst)" }
+    }
+  }
+
+  # Seed the per-machine config so the skill never probes for the vault or assumes a
+  # WSL distro. Written only when absent, so a hand-edited path is never clobbered.
+  $cfg = Join-Path $claudeDir 'project-scaffold.config.json'
+  if (Test-Path $cfg) {
+    Say "Keeping the existing $cfg"
+  } else {
+    $distro = ''
+    # docker-desktop / docker-desktop-data show up in this list and are not usable
+    # distros (no user home), so taking the first line blindly can pick one.
+    try {
+      $distro = ((wsl -l -q) |
+        ForEach-Object { $_.Trim() } |
+        Where-Object { $_ -and $_ -notlike 'docker-desktop*' } |
+        Select-Object -First 1)
+    } catch { }
+    $obj = [ordered]@{
+      vault     = if ($script:WinVaultPath) { $script:WinVaultPath } else { $null }
+      wsl       = [bool]$distro
+      wslDistro = if ($distro) { $distro } else { $null }
+    }
+    ($obj | ConvertTo-Json) | Out-File -FilePath $cfg -Encoding utf8
+    Say "Wrote $cfg"
+  }
+}
+
+Install-ProjectScaffold
 
 Say 'Setup complete.'
 @"
