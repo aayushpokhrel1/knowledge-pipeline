@@ -10,7 +10,16 @@ An opinionated setup for a local-first knowledge stack: Obsidian + Graphify + cl
 | `hooks/` | Claude Code hooks registered by the setup scripts |
 | `skills/project-scaffold/` | The `/project-scaffold` skill: creates a new project's doc structure, guards and vault folder. Installed into `~/.claude/skills/` by the setup scripts as a USER-LEVEL skill, linked at this repo so a `git pull` updates it in place |
 | `commands/project-scaffold.md` | The slash command that invokes that skill. Installed into `~/.claude/commands/` the same way |
+| `scripts/install-scaffold.{sh,ps1}` | The installer itself, sourced by the matching setup script. **Sourcing must stay side-effect free**: it defines functions only, so CI and the tests can point it at a sandbox and assert on the result |
+| `scripts/test-install-scaffold.{sh,ps1}` | Smoke tests that run the real installer into a throwaway directory. Run them before touching either installer |
+| `scripts/check-skills.sh` | Holds `skills/` to the rules stated below, so they are not merely written down |
+| `.github/workflows/ci.yml` | Runs all of the above on Linux, and on Windows under both PowerShell and Git Bash |
 | `claude-obsidian/` | A VENDORED CLONE of a third-party repo. Do not restructure it or add docs to it |
+
+**Verify with `bash scripts/check-skills.sh && bash scripts/test-install-scaffold.sh`**, plus
+`pwsh -File scripts/test-install-scaffold.ps1` when the Windows installer changed. CI runs all
+three. There is deliberately **no shellcheck step**: it has not been watched go green here, and
+a gate nobody has seen pass is how a default branch ends up red. Add it once it does.
 
 **Nothing in `skills/` may hardcode a path.** It runs on more than one machine, so the vault
 location, whether vault writes need WSL, and the WSL distro are resolved at runtime and cached
