@@ -180,23 +180,27 @@ note per node and would otherwise clutter the vault.
 
 ### Query-first enforcement (so the graph is actually used)
 
-A knowledge graph that Claude routes around is dead weight. Setup installs four small
+A knowledge graph that Claude routes around is dead weight. Setup installs six small
 Claude Code hooks (into `~/.claude/`) that make "query the graph before browsing raw code"
 an enforced rule, not a suggestion:
 
 | Hook | Event | What it does |
 |------|-------|--------------|
 | `graphify-nudge.sh` | `PreToolUse` (Grep/Glob) | **DENIES** the search in any repo that has a `graphify-out/graph.json`, until a `graphify query`/`path`/`explain` has run **this turn**. |
-| `graphify-mark.sh` | `PostToolUse` (Bash) | Records that the graph was consulted when a graphify read command runs, which unblocks Grep/Glob for the rest of the turn. |
+| `graphify-read-nudge.sh` | `PreToolUse` (Read) | **DENIES** reading further **code** files until the graph is consulted. Scoped: non-code files (docs, config, migrations, fixtures) always pass, and the first `$GRAPHIFY_READ_GRACE` code reads each turn (default 2, read-before-edit) pass free. |
+| `graphify-mark.sh` | `PostToolUse` (Bash) | Records that the graph was consulted when a graphify read command runs, which unblocks Grep/Glob/Read for the rest of the turn. |
 | `graphify-reset.sh` | `UserPromptSubmit` | Clears that per-turn marker, so each new question requires a fresh consult. |
 | `graphify-banner.sh` | `SessionStart` | Announces the graph and the rule at the top of each session in a repo that has one. |
+| `graphify-audit.sh` | `Stop` | Backstop. Logs to `~/.claude/state/graphify-misses.log` any turn that browsed code without consulting the graph. Never blocks. |
 
 Notes:
 - **Scoped to graph repos only.** In any project without a `graphify-out/graph.json` the
   hooks are silent and never block anything.
-- **`Read` is deliberately not hard-denied.** A graph query returns `file:line`; reading
-  that line is the intended next step, so blocking `Read` would break the flow the graph
-  sets up. `Read` stays a nudge; `Grep`/`Glob` (broad exploration) are the enforced gate.
+- **`Read` is gated, but scoped rather than blanket-denied.** A graph query returns
+  `file:line`, so blocking every `Read` would break the flow the graph sets up. Only
+  exploration reads of code files are denied, past a small read-before-edit grace;
+  `Grep`/`Glob` (broad exploration) are denied outright. The reasoning behind the scoping
+  is in [`hooks/README.md`](hooks/README.md).
 - **Escape hatch for a genuine exact-string / filename search** (where grep beats the
   graph): `touch` the per-turn marker named in the deny message. It is visible in the
   transcript, so skipping the graph is a conscious, logged act, not a silent default.

@@ -60,7 +60,7 @@ Run from the Knowledge-Pipeline root (or anywhere; the installer finds its own s
 python hooks/register-hooks.py
 ```
 
-`register-hooks.py` copies the four scripts into `~/.claude/hooks/` and merges their
+`register-hooks.py` copies the six scripts into `~/.claude/hooks/` and merges their
 registrations into `~/.claude/settings.json`. It is **idempotent** and **additive**: a
 registration already present is not duplicated, and unrelated hooks (delegate, ponytail,
 etc.) are preserved. Target a different config dir with `CLAUDE_CONFIG_DIR`.
@@ -69,5 +69,5 @@ etc.) are preserved. Target a different config dir with `CLAUDE_CONFIG_DIR`.
 
 ## Uninstall
 
-Delete the four `graphify-*.sh` from `~/.claude/hooks/` and remove their entries from the
+Delete the six `graphify-*.sh` from `~/.claude/hooks/` and remove their entries from the
 `hooks` block of `~/.claude/settings.json`.
