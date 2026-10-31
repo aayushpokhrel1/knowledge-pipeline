@@ -1,0 +1,79 @@
+name: CI
+
+# This repo's product IS its setup scripts, and the whole point of them is working on
+# a machine that is not the author's. Nothing proved they did until this existed.
+#
+# Every step here was run locally and seen to pass before it was added. A gate nobody
+# has watched go green is how a repo ends up with a red default branch, and a step
+# marked continue-on-error is worse than no step, because it reads as coverage while
+# gating nothing.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  linux:
+    name: linux (bash installer)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Syntax-check the shell scripts
+        run: bash -n setup.sh scripts/*.sh
+
+      - name: Byte-compile the hooks installer
+        run: python -m py_compile hooks/register-hooks.py
+
+      # Holds skills/ to the rules CLAUDE.md states: no hardcoded home directory, no
+      # assumed WSL distro, frontmatter whose name matches its directory, and a
+      # matching commands/ file. Prose asking for that does not get it.
+      - name: Check the skill rules
+        run: bash scripts/check-skills.sh
+
+      # Runs the real installer against a throwaway directory. Covers the things a
+      # syntax check cannot: that the config comes out as valid JSON, that a second
+      # run is idempotent, and that a displaced directory is backed up outside
+      # skills/ (a backup left inside it is itself read as a second, stale skill).
+      - name: Installer smoke test
+        run: bash scripts/test-install-scaffold.sh
+
+  windows:
+    name: windows (powershell + git bash installers)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse-check the PowerShell scripts
+        shell: pwsh
+        run: |
+          $failed = $false
+          foreach ($f in @('setup.ps1', 'scripts/install-scaffold.ps1', 'scripts/test-install-scaffold.ps1')) {
+            $errs = $null; $toks = $null
+            $null = [System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path $f), [ref]$toks, [ref]$errs)
+            if ($errs.Count -gt 0) {
+              Write-Host "::error file=$f::$($errs[0].Message)"
+              $failed = $true
+            } else {
+              Write-Host "$f parses clean"
+            }
+          }
+          if ($failed) { exit 1 }
+
+      # The Windows install path is the least exercised code here and the most likely
+      # to break elsewhere: it uses a directory junction and a file hard link, which
+      # work without administrator rights where a symlink does not.
+      - name: Installer smoke test (PowerShell)
+        shell: pwsh
+        run: ./scripts/test-install-scaffold.ps1
+
+      # The same installer under Git Bash, which is how the author actually runs it on
+      # Windows. This leg is what caught `python3` resolving to the Microsoft Store
+      # stub: present on PATH, fails when executed, and it silently cost the config
+      # file until the detector started running each candidate once.
+      - name: Installer smoke test (Git Bash)
+        shell: bash
+        run: bash scripts/test-install-scaffold.sh
