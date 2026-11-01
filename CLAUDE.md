@@ -12,12 +12,13 @@ An opinionated setup for a local-first knowledge stack: Obsidian + Graphify + cl
 | `commands/project-scaffold.md` | The slash command that invokes that skill. Installed into `~/.claude/commands/` the same way |
 | `scripts/install-scaffold.{sh,ps1}` | The installer itself, sourced by the matching setup script. **Sourcing must stay side-effect free**: it defines functions only, so CI and the tests can point it at a sandbox and assert on the result |
 | `scripts/test-install-scaffold.{sh,ps1}` | Smoke tests that run the real installer into a throwaway directory. Run them before touching either installer |
-| `scripts/check-skills.sh` | Holds `skills/` to the rules stated below, so they are not merely written down |
+| `scripts/check-skills.sh` | Holds `skills/` to the rules stated below, and fails when a `hooks/graphify-*.sh` is missing from the installer or from either doc table, so they are not merely written down |
 | `.github/workflows/ci.yml` | Runs all of the above on Linux, and on Windows under both PowerShell and Git Bash |
 | `claude-obsidian/` | A third-party repo that setup clones here. It is gitignored, NOT vendored. Do not restructure it or add docs to it |
 
 **Verify with `bash scripts/check-skills.sh && bash scripts/test-install-scaffold.sh`**, plus
-`pwsh -File scripts/test-install-scaffold.ps1` when the Windows installer changed. CI runs all
+`./scripts/test-install-scaffold.ps1` when the Windows installer changed (it passes under both
+Windows PowerShell 5.1 and `pwsh`; CI uses `pwsh`, which is not on every machine). CI runs all
 three. There is deliberately **no shellcheck step**: it has not been watched go green here, and
 a gate nobody has seen pass is how a default branch ends up red. Add it once it does.
 
@@ -42,9 +43,9 @@ This repo's job is **setup**, so its README is the product. It installs the vaul
 2. **Every doc in this repo**, not only the one already open.
 3. **The handover**, but only its current-state numbers.
 
-**Vault writes go through WSL, and note content must never appear on the command line.** The Bash
-tool re-quotes the wrapper, so backticks and apostrophes inside a note get executed or break the
-command. Write the note to a file first, then pass only literal paths:
+**Vault writes go through WSL, and note content must never appear on the command line.** Write
+the note to a file first, then pass only literal paths (README's "Windows setup" section explains
+why a heredoc does not save you):
 
 ```
 wsl -d Ubuntu -- bash -lc 'cat /mnt/c/<tmp>/note.md >> /mnt/c/Users/aayus/Documents/Knowledge-Vault/Projects/Knowledge-Pipeline/index.md'

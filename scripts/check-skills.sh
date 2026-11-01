@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #
-# Holds skills/ to the rules CLAUDE.md states, so they are not just prose.
+# Holds skills/ (and the hook docs) to the rules CLAUDE.md states, so they are
+# not just prose.
 #
 #   bash scripts/check-skills.sh
 #
@@ -50,9 +51,21 @@ for f in $skills; do
   [ -f "commands/$dirname_.md" ] || report "commands/$dirname_.md is missing for skill '$dirname_'"
 done
 
+# 5. Every graphify hook must be named in register-hooks.py and in BOTH doc
+#    tables. Two hooks were added once and the README kept describing four of
+#    them, with a design note that asserted the opposite of what the new one
+#    did. A count in prose is the first thing to go stale when the set grows,
+#    so check the names instead of the number.
+for h in hooks/graphify-*.sh; do
+  base="$(basename "$h")"
+  grep -q "$base" hooks/register-hooks.py || report "$base is not in SCRIPTS in hooks/register-hooks.py"
+  grep -q "$base" hooks/README.md         || report "$base is not documented in hooks/README.md"
+  grep -q "$base" README.md               || report "$base is not in the hook table in README.md"
+done
+
 echo
 if [ "$fails" -eq 0 ]; then
-  echo "skills/ checks passed"
+  echo "skills/ and hook-doc checks passed"
 else
   echo "$fails problem(s) found"
   exit 1

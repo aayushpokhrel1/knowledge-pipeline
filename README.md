@@ -17,7 +17,7 @@ sets them up cleanly and explains how they fit.
 |------|-----------|---------------|
 | **Obsidian** | A note-taking app over plain Markdown files you own (a "vault"), with a graph view of the links between notes. | The **home** for everything you write and want to revisit and interconnect. |
 | **claude-obsidian** | A Claude Code plugin + skills that let Claude capture sources, write linked/cited notes, and answer from the vault, all as reviewed, recoverable transactions. | Letting **Claude maintain** that vault so your knowledge compounds instead of restarting every chat. |
-| **Graphify** | A local tree-sitter parser that turns a codebase (37 languages, plus docs, PDFs, SQL) into a queryable knowledge graph, exposed as a `/graphify` skill. | **Understanding code you already have**: "what connects auth to the database?" |
+| **Graphify** | A local tree-sitter parser that turns a codebase (~40 languages, plus docs, PDFs, SQL) into a queryable knowledge graph, exposed as a `/graphify` skill. | **Understanding code you already have**: "what connects auth to the database?" |
 
 **The mental model:**
 
