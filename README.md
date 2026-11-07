@@ -364,13 +364,17 @@ unsupported and error-prone; mapping it to a drive letter (`net use O: \\wsl.loc
 helps but is still second-class. The Windows-drive + metadata route above is smoother.
 
 Three more things worth knowing:
-- **Never put note text inside a `wsl.exe` command line.** Windows re-quotes the wrapper on the
-  way across (`'...'` arrives as `"..."`), so the body is expanded by the shell and a heredoc,
-  even `<<"EOF"`, does not protect it: backticks in your prose become command substitution and
-  actually run, and an apostrophe breaks the command. Write the content to a file first and have
-  WSL read that file, so only literal paths cross the boundary:
-  `wsl -d Ubuntu -- bash -lc 'cat /mnt/c/tmp/note.md >> /mnt/c/.../index.md'`. The same applies to
-  variables: compute them inside the WSL script.
+- **Never put note text on a command line.** Write it to a file, then append it with the tool the
+  setup installs, which takes paths only and needs no WSL:
+  `python ~/.claude/bin/vault-note.py <Project> <file>` (`--note <name>` for a sibling note
+  instead of `index.md`). This is a security boundary, not an ergonomics one: a session that
+  built `wsl -d Ubuntu -- bash -lc 'cat >> index.md <<"EOF" ...'` with the note inline had the
+  backticks in its own prose executed, because Windows re-quotes the wrapper on the way across
+  (`'...'` arrives as `"..."`), so the shell expands the body before heredoc semantics apply and
+  even `<<"EOF"` does not protect it. `<name>` then parsed as a redirect and an apostrophe ended
+  the quote. Captured notes contain backticks and apostrophes by nature, so interpolating one
+  into a shell command is a command-injection path. Same rule for variables: compute them inside
+  a script file rather than in a `bash -lc '...'` wrapper.
 - Vault **writes** are refused on native Windows by design; read-only inspection works anywhere.
 - A write's approval hash binds to the environment that produced it, so run the
   dry-run and the apply in the **same** shell.
@@ -385,6 +389,8 @@ Three more things worth knowing:
   into `~/.claude/` (skipped with `KP_SKIP_GRAPHIFY=1`, which the Windows->WSL handoff sets so
   the hooks install once, natively).
 - **claude-obsidian** cloned into `./claude-obsidian/` (not vendored into this repo).
+- **`~/.claude/bin/vault-note.py`**, the paths-only vault append, plus the `/project-scaffold`
+  skill and command.
 - A **vault**, initialized and health-checked.
 - **Optional, with `KP_WITH_SKILLS=1`:** the [companion skills](#optional-companion-claude-skills)
   humanizer and ponytail.

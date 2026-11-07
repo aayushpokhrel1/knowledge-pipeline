@@ -40,6 +40,13 @@ jobs:
       - name: Installer smoke test
         run: bash scripts/test-install-scaffold.sh
 
+      # The one gate that makes "note text never touches a command line" real rather
+      # than written down: it appends prose full of backticks, `<name>` and apostrophes
+      # and asserts it lands byte for byte. That text is what a hand-rolled
+      # `wsl ... bash -lc` route executed instead of writing.
+      - name: Vault-note self-check
+        run: python scripts/test-vault-note.py
+
   windows:
     name: windows (powershell + git bash installers)
     runs-on: windows-latest
@@ -77,3 +84,8 @@ jobs:
       - name: Installer smoke test (Git Bash)
         shell: bash
         run: bash scripts/test-install-scaffold.sh
+
+      # Windows is where the quoting bug lives, so the self-check runs here too.
+      - name: Vault-note self-check
+        shell: pwsh
+        run: python scripts/test-vault-note.py

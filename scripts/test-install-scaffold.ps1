@@ -45,6 +45,7 @@ try {
   if (Test-Path $skill) { Pass 'skill installed' } else { Failed 'skill missing' }
   if (Test-Path $cmd) { Pass 'command installed' } else { Failed 'command missing' }
   if (Test-Path $cfg) { Pass 'config written' } else { Failed 'config missing' }
+  if (Test-Path (Join-Path $c1 'bin\vault-note.py')) { Pass 'vault-note installed' } else { Failed 'vault-note missing' }
 
   # Reading SKILL.md through the install path proves the junction actually resolves,
   # which is the whole reason a junction was chosen over a symlink.

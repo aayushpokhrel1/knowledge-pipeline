@@ -34,10 +34,15 @@ function Install-ProjectScaffold {
   Say "Installing the project-scaffold skill into $ClaudeDir"
   New-Item -ItemType Directory -Force -Path (Join-Path $ClaudeDir 'skills') | Out-Null
   New-Item -ItemType Directory -Force -Path (Join-Path $ClaudeDir 'commands') | Out-Null
+  New-Item -ItemType Directory -Force -Path (Join-Path $ClaudeDir 'bin') | Out-Null
 
   $pairs = @(
     @{ Src = (Join-Path $RepoDir 'skills\project-scaffold'); Dst = (Join-Path $ClaudeDir 'skills\project-scaffold'); Kind = 'Junction' },
-    @{ Src = (Join-Path $RepoDir 'commands\project-scaffold.md'); Dst = (Join-Path $ClaudeDir 'commands\project-scaffold.md'); Kind = 'HardLink' }
+    @{ Src = (Join-Path $RepoDir 'commands\project-scaffold.md'); Dst = (Join-Path $ClaudeDir 'commands\project-scaffold.md'); Kind = 'HardLink' },
+    # The vault-write tool. Installed next to the skill because the skill's one
+    # inviolable rule (note text never touches a command line) is only actually
+    # enforced by having a paths-only tool to reach for instead.
+    @{ Src = (Join-Path $RepoDir 'scripts\vault-note.py'); Dst = (Join-Path $ClaudeDir 'bin\vault-note.py'); Kind = 'HardLink' }
   )
 
   foreach ($p in $pairs) {

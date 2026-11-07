@@ -53,6 +53,7 @@ KP_CLAUDE_DIR="$C1" KP_VAULT="$VAULT_FIXTURE" install_project_scaffold >/dev/nul
 [ -e "$C1/skills/project-scaffold/SKILL.md" ] && pass "skill installed" || fail "skill missing"
 [ -e "$C1/commands/project-scaffold.md" ]     && pass "command installed" || fail "command missing"
 [ -e "$C1/project-scaffold.config.json" ]     && pass "config written" || fail "config missing"
+[ -e "$C1/bin/vault-note.py" ]                && pass "vault-note installed" || fail "vault-note missing"
 # Reading SKILL.md through the install path proves the link actually resolves.
 grep -q '^name: project-scaffold' "$C1/skills/project-scaffold/SKILL.md" \
   && pass "skill readable through the install path" || fail "skill unreadable through the install path"

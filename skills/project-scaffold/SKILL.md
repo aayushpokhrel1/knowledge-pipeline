@@ -199,16 +199,17 @@ include these four sections verbatim in substance:
    the part that compounds), then every doc in the repo, then the handover's current-state
    numbers only. Write this project's vault path into that section as a REAL path, resolved
    in Step 0, not a placeholder: the generated CLAUDE.md is read on one machine and a
-   `<vault>` token in it is useless. On Windows, include the WSL warning too, using the
-   resolved distro:
+   `<vault>` token in it is useless. Give it the vault-write command and nothing else, so
+   no session in that project ever hand-rolls one:
 
    ```
-   MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' wsl -d <distro> -- bash /mnt/<drive>/<tmp>/vault-write.sh
+   python ~/.claude/bin/vault-note.py <Name> <scratchpad>/note.md
    ```
 
-   and the reason: the Bash tool re-quotes the wrapper, so backticks and apostrophes inside
-   a note get executed or break the command. Write the note to a file first, pass only
-   literal paths. And: **updating docs means making them TRUE, not just appending what
+   and one line of reason: note content must never reach a command line, because a shell
+   executes the backticks in it. Do NOT paste a `wsl ... bash -lc` recipe into a generated
+   CLAUDE.md; that is the shape that got a note's `` `tmux attach` `` executed on
+   2026-11-07. And: **updating docs means making them TRUE, not just appending what
    shipped** — correct or strike a stale claim where it sits, and cross-check every number
    against reality rather than trusting the file.
 
@@ -318,25 +319,39 @@ matches the repo directory name exactly. Check for a near-miss first (Chess_Coac
 exists, use it and say so rather than creating a second. Skip this whole step when Step 0
 recorded `"vault": null`.
 
-Write the note to a scratchpad file with the Write tool first, whatever the platform.
-**Never put note content on the command line.** That is the only rule that always holds;
-everything else here is about which interpreter runs your script.
+Write the note to a scratchpad file with the Write tool, then append it with the installed
+tool. Two paths cross the command line and nothing else:
 
-**Writing a plain Markdown note does NOT need WSL, even on Windows.** The vault sits on the
-ordinary filesystem, so the host `python` writes it directly. WSL is needed for the
-`claude-obsidian` CLI, which wants POSIX metadata, not for appending to or editing a note.
-Reaching for WSL anyway adds three failure modes for no benefit, all three hit on
-2026-10-26: a distro to resolve, argument paths to translate, and a service that can simply
-be down (`Wsl/Service/0x80072747`). **So default to the host interpreter with native paths**,
-and go through WSL only for a `claude-obsidian` command.
+```bash
+python ~/.claude/bin/vault-note.py <Name> <scratchpad>/note.md
+# a sibling note instead of index.md:
+python ~/.claude/bin/vault-note.py <Name> <scratchpad>/note.md --note <note-name>
+```
 
-**A script's paths must match the interpreter that runs it.** A script holding
-`C:\Users\...` run under WSL dies with `FileNotFoundError`, because WSL needs
-`/mnt/c/Users/...`. Pick one form and keep the whole script in it. This is the mistake to
-expect, and it is why the host interpreter is the simpler default.
+It reads the vault from the Step 0 config, creates the project folder, reuses a
+separator/case variant if one exists (that is the Chess_Coach split, caught mechanically),
+and separates appends with a blank line.
 
-**If you do use WSL, two more things break it**, both confirmed on 2026-10-21. Write a
-script FILE and run that; never build a `bash -lc '...'` one-liner.
+**Never put note content on the command line.** That is the rule the tool exists to make
+unbreakable, and it is not an ergonomics preference. A session on another project built
+`wsl -d <distro> -- bash -lc 'cat >> index.md <<"EOF" ... EOF'` with the note inline on
+2026-11-07: Windows re-quoted the outer `'...'` into `"..."`, so the heredoc body was
+expanded by the shell before heredoc semantics applied, and the backticks in the prose
+**ran** (a note mentioning `` `tmux attach` `` executed tmux), `<name>` parsed as a
+redirect, and an apostrophe in `tmux's` ended the quote. Captured text is exactly the kind
+of text that contains backticks and apostrophes, so interpolating it into a shell command is
+a command-injection path. Reach for the tool; do not hand-roll the write.
+
+**No WSL, even on Windows.** The vault sits on the ordinary filesystem, so the host `python`
+writes it directly. WSL is needed only for the `claude-obsidian` CLI, which wants POSIX
+metadata. Reaching for WSL to write a note adds three failure modes for no benefit, all
+three hit on 2026-10-26: a distro to resolve, argument paths to translate, and a service
+that can simply be down (`Wsl/Service/0x80072747`).
+
+**If you do run something under WSL** (a `claude-obsidian` command), write a script FILE and
+run that; never build a `bash -lc '...'` one-liner, and keep every path in the script in
+`/mnt/c/...` form, because a script holding `C:\Users\...` dies with `FileNotFoundError`.
+Two more things break it, both confirmed on 2026-10-21:
 
 1. **The Bash tool re-quotes the wrapper, so `$VAR` and backslash-escapes inside
    `bash -lc '...'` are mangled.** A `V=/mnt/c/...` assignment followed by `"$V/index.md"`
@@ -347,25 +362,15 @@ script FILE and run that; never build a `bash -lc '...'` one-liner.
    `bash: C:/Program Files/Git/mnt/c/.../script.sh: No such file or directory`.
    Prefix the call with `MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'`.
 
-So:
-
 ```bash
-# after writing the script to the scratchpad with the Write tool.
 # <distro> is from Step 0 (wsl -l -q), never assumed.
-MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' wsl -d <distro> -- bash /mnt/<drive>/<scratchpad>/vault-write.sh
+MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' wsl -d <distro> -- bash /mnt/<drive>/<scratchpad>/script.sh
 ```
 
-**If WSL itself fails, that is not a dead end.** It returned
-`Wsl/Service/0x80072747` (a socket buffer error) mid-session once. The vault is on the normal
-filesystem, so fall back to running the same script with the host `python` against the native
-path. The rule being protected is only ever *note content must not touch the command line*,
-and a script file satisfies it either way.
-
-and the script itself does the `mkdir -p` and `cp`, with the paths written inside it. For
-any edit to an EXISTING note, have that script call `python3` with a heredoc rather than
-`sed`: a wikilink is full of `[`, `|` and `\` that sed treats as syntax, and a `python3 -`
-heredoc also lets you assert you matched exactly one line before rewriting it, so a missed
-match fails instead of silently doing nothing.
+For an in-place EDIT of an existing note (not an append), write a `python` script to the
+scratchpad and run it, rather than `sed`: a wikilink is full of `[`, `|` and `\` that sed
+treats as syntax, and a script lets you assert you matched exactly one line before rewriting
+it, so a missed match fails instead of silently doing nothing.
 
 The shape, matching the existing vault notes:
 
@@ -398,8 +403,10 @@ tags:
 
 Leave the three sections empty with their headings: they're the homes, and a fabricated
 first entry is worse than none. Then add one line to the vault's `Projects/index.md` under
-"Active projects", in the same `[[Projects/<Name>/index|<Name>]] - <hook>` form, via the
-same write-a-file-then-WSL route.
+"Active projects", in the same `[[Projects/<Name>/index|<Name>]] - <hook>` form. That one is
+an insert under a heading, not an append, and `Projects/index.md` is not inside a project
+folder, so `vault-note.py` does not cover it: write a `python` script to the scratchpad and
+run it, per the edit rule above.
 
 ## Step 6: report
 

@@ -68,9 +68,13 @@ install_project_scaffold() {
   claude_dir="${KP_CLAUDE_DIR:-$HOME/.claude}"
 
   say "Installing the project-scaffold skill into $claude_dir"
-  mkdir -p "$claude_dir/skills" "$claude_dir/commands"
+  mkdir -p "$claude_dir/skills" "$claude_dir/commands" "$claude_dir/bin"
   link_or_copy "$repo/skills/project-scaffold" "$claude_dir/skills/project-scaffold" || return 1
   link_or_copy "$repo/commands/project-scaffold.md" "$claude_dir/commands/project-scaffold.md" || return 1
+  # The vault-write tool. Installed next to the skill because the skill's one
+  # inviolable rule (note text never touches a command line) is only actually
+  # enforced by having a paths-only tool to reach for instead.
+  link_or_copy "$repo/scripts/vault-note.py" "$claude_dir/bin/vault-note.py" || return 1
 
   # Seed the per-machine config so the skill never probes for the vault or
   # hardcodes a path. Written only when absent, so a hand-edited path survives.
