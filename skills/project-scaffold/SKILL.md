@@ -173,19 +173,19 @@ This is the important file: it's the only one auto-loaded every session. Write i
 **only the rows this project actually has** (don't list `DESIGN.md` on a CLI tool), and
 include these four sections verbatim in substance:
 
-1. **`## Where things are written down`** — the routing table above, trimmed to this
+1. **`## Where things are written down`**: the routing table above, trimmed to this
    project, with these three non-file rows appended:
 
    | a **code comment at the site** | A rule about specific code |
    | the **Obsidian vault** | A lesson that would change how I work on a *different* project |
    | nowhere | A dated narrative of what you did today. `git log` already holds it, in more detail |
 
-2. **`## The handover`** — that it is gitignored and local-only, so nothing durable may
+2. **`## The handover`**: that it is gitignored and local-only, so nothing durable may
    live there, and the test: *before adding a line, ask whether it will still be true in a
    month. If yes it belongs in a permanent doc or the vault.* Name the 1,365-line
    FamilyRecipes failure as the reason, in one sentence.
 
-3. **`## Where knowledge goes`** — lessons have ONE home each, by reach:
+3. **`## Where knowledge goes`**: lessons have ONE home each, by reach:
    a rule about specific code → a comment AT that code (the most reliable form by a
    distance: you cannot edit the function without reading the warning above it);
    a lesson that generalises → the vault, phrased so it's useful on another project with
@@ -194,7 +194,7 @@ include these four sections verbatim in substance:
    And: prefer a mechanical defence (a failing test, a CI job, a grep, an unavoidable
    comment) over a written one. The failure mode is not ignorance, it's not re-reading.
 
-4. **`## When Aayush says "update"`** — "update the docs" / "update everything" / "update"
+4. **`## When Aayush says "update"`**: "update the docs" / "update everything" / "update"
    means all of it in this turn: the vault folder first (the part that gets forgotten and
    the part that compounds), then every doc in the repo, then the handover's current-state
    numbers only. Write this project's vault path into that section as a REAL path, resolved
@@ -210,10 +210,10 @@ include these four sections verbatim in substance:
    executes the backticks in it. Do NOT paste a `wsl ... bash -lc` recipe into a generated
    CLAUDE.md; that is the shape that got a note's `` `tmux attach` `` executed on
    2026-11-07. And: **updating docs means making them TRUE, not just appending what
-   shipped** — correct or strike a stale claim where it sits, and cross-check every number
+   shipped**: correct or strike a stale claim where it sits, and cross-check every number
    against reality rather than trusting the file.
 
-5. **`## Project rules`** — start it with whatever the interview surfaced (the verify
+5. **`## Project rules`**: start it with whatever the interview surfaced (the verify
    command at minimum, e.g. "**Verify with `npx tsc -b && npm test`**"), and leave it to
    grow. One bullet is fine; an empty section is not.
 
@@ -240,7 +240,7 @@ the canonical copy is in the vault.
 A doc asking for brevity does not get it. Write the smallest test the project's existing
 runner will pick up, failing when `HANDOVER.md` exceeds 200 lines or grows dated section
 headings. **The answer when it goes red is to MOVE content to its home, never to raise the
-budget** — put that sentence in the test as a comment, because the test is where someone
+budget**. Put that sentence in the test as a comment, because the test is where someone
 will be standing when they're tempted.
 
 Detect the runner from Step 1. If the project has no test runner at all, skip this and say
@@ -300,14 +300,15 @@ it's a user-global setting and changing it affects every repo, so that's the use
 
 Then add the graphify stanza to CLAUDE.md: query / path / explain before grep.
 
-**`graphify .` writes the graph but NOT `GRAPH_REPORT.md`.** The report needs a separate
-`graphify cluster-only .` and another model call, so do not copy a sibling project's stanza
-promising a report this repo has not generated; that is a stale claim on arrival. Either run
-`cluster-only` too, or say in the stanza that there is no report and the graph alone is
-enough for query/path/explain. Confirmed on 2026-10-26.
+**`graphify .` writes `graph.json` but NOT `GRAPH_REPORT.md` or `graph.html`.** Both come from
+a separate `graphify cluster-only .` and another model call, so do not copy a sibling project's
+stanza promising a report this repo has not generated; that is a stale claim on arrival. Either
+run `cluster-only` too, or say in the stanza that there is no report and the graph alone is
+enough for query/path/explain. Confirmed on 2026-10-26, and again on 2026-11-24.
 
-The first `graphify .` also **costs a model call** (it reported ~$0.014 and ~21k tokens on a
-small repo), unlike the post-commit hook, which is AST-only and free. Expect warnings about
+The first `graphify .` also **costs a model call** (about 0.014 USD and 21k tokens on a small
+code repo, about 0.008 USD and 8k tokens on a docs-only one), unlike the post-commit hook, which
+is AST-only and free. Expect warnings about
 files that produced no nodes; a re-run retries them and costs again, so only re-run if the
 graph is actually unusable.
 

@@ -41,8 +41,9 @@ reads the repo first, asks only what it cannot detect, then writes `README.md`,
 `PRODUCT.md`, `DESIGN.md` (only when there is a UI), `CLAUDE.md`, `docs/OPERATIONS.md` and
 the `docs/superpowers/{specs,plans}/` homes, filled from your answers rather than left as
 stubs. It also adds the guards that keep them honest: the `.gitignore` lines, a test that
-fails when `HANDOVER.md` grows past 200 lines or sprouts dated headings, and the matching
-folder in your vault.
+fails when `HANDOVER.md` grows past 200 lines or sprouts dated headings (in the project's own
+test runner, skipped when it has none), the knowledge graph, and the matching folder in your
+vault.
 
 It is careful about three things worth knowing:
 
@@ -86,7 +87,7 @@ cd knowledge-pipeline
 ./setup.sh
 ```
 
-**Windows (PowerShell)** — do the [one-time metadata step](#windows-setup-do-this-once)
+**Windows (PowerShell)**: do the [one-time metadata step](#windows-setup-do-this-once)
 first, then:
 
 ```powershell
@@ -133,10 +134,10 @@ claude --plugin-dir /absolute/path/to/knowledge-pipeline/claude-obsidian
 
 Then inside Claude Code:
 
-- `/claude-obsidian:wiki` — orient / see the vault state
-- put a file in `inbox/`, then `/claude-obsidian:wiki-ingest` — capture a source into linked, cited notes
-- `/claude-obsidian:wiki-query` — ask the vault, grounded in its own evidence
-- `/claude-obsidian:wiki-lint` — health-check and tidy
+- `/claude-obsidian:wiki`: orient / see the vault state
+- put a file in `inbox/`, then `/claude-obsidian:wiki-ingest`: capture a source into linked, cited notes
+- `/claude-obsidian:wiki-query`: ask the vault, grounded in its own evidence
+- `/claude-obsidian:wiki-lint`: health-check and tidy
 
 **Map a codebase** (native Windows is fine, no WSL needed):
 
@@ -144,8 +145,9 @@ Then inside Claude Code:
 graphify .        # or /graphify . inside Claude Code
 ```
 
-Outputs land in `graphify-out/`: an interactive `graph.html`, a `GRAPH_REPORT.md`,
-and a queryable `graph.json`.
+Outputs land in `graphify-out/`: a queryable `graph.json`, which is all
+`graphify query`/`path`/`explain` need. The interactive `graph.html` and the `GRAPH_REPORT.md`
+summary come from a second step, `graphify cluster-only .`, which costs one more model call.
 
 ---
 
@@ -297,37 +299,51 @@ compete and hand you conflicting direction.
 |--------|------|------|
 | **impeccable** | Generalist | Broad build / redesign / audit / critique: hierarchy, a11y, typography, tokens, motion. |
 | **ui-ux-pro-max** | Generalist | UI/UX intelligence plus searchable datasets (styles, palettes, font pairings, UX guidelines, charts, stacks). |
-| **animate**, **review-animations**, **improve-animations**, **find-animation-opportunities**, **animation-vocabulary** | Motion | Emil Kowalski's animation craft: build motion, audit it, find where it is missing, name the effect you mean. |
-| **apple-design**, **pick-ui-library**, **prototype**, **ask-sonner** | Specialists | Apple-style gesture/spring UI, choosing a library over custom code, multi-version prototyping, Sonner toasts. |
+| **animate**, **choreograph**, **gestures**, **animation-performance**, **remove-animations**, **review-animations**, **improve-animations**, **find-animation-opportunities**, **animation-vocabulary** | Motion | Emil Kowalski's animation craft: build motion, sequence groups of it, make drags and sheets track the finger, keep it in the frame budget, cut what isn't needed, audit it, name the effect you mean. |
+| **emil-design-eng**, **apple-design**, **mobile-native**, **break-ui** | Interaction and robustness | Press, hover and transition polish; Apple-style spring and gesture UI; making a web app feel native on a phone; stress-testing a component with worst-case data. |
+| **pick-ui-library**, **prototype**, **ask-sonner**, **learn-taste**, **ask-emil** | Utilities | Choosing a library over custom code, multi-version prototyping, Sonner toasts, turning your design corrections into rules, and a router over Emil's set. |
+| **animate-expo**, **write-swift** | Native | React Native motion and modern Swift, for projects that are not web. |
 
-The two generalists were already in place; the nine specialists come from
-[emilkowalski/skills](https://github.com/emilkowalski/skills). Animation was the real
-gap (neither generalist specializes there), so those add rather than collide.
+The two generalists were in place first; all 19 of Emil's skills come from
+[emilkowalski/skills](https://github.com/emilkowalski/skills). They cover the layer neither
+generalist specializes in, how an interface moves and feels, so they add rather than
+collide. `emil-design-eng` is the one broad skill among them, but it describes itself as the
+fallback "when no narrower skill fits", so it yields to the others.
+
+To run them as one pipeline (critique the look and the feel, then fix each problem with the
+right skill), see [Design-Pipeline](https://github.com/aayushpokhrel1/Design-Pipeline).
 
 ### Install them (by hand)
 
-They are portable Markdown, so no CLI or config change is involved:
+They are portable Markdown, so no CLI is involved:
 
 ```bash
 git clone --depth 1 https://github.com/emilkowalski/skills.git
-# copy the folders you want from skills/skills/ into ~/.claude/skills/
-cp -r skills/skills/{animate,review-animations,improve-animations,\
-find-animation-opportunities,animation-vocabulary,apple-design,\
-pick-ui-library,prototype,ask-sonner} ~/.claude/skills/
+cp -r skills/skills/* ~/.claude/skills/      # or only the folders you want
 ```
 
-Claude Code picks them up on the next session.
+Claude Code picks them up on the next session. Two traps worth knowing:
+
+- **A skill can be installed and still invisible.** A `"<name>": "off"` entry under
+  `skillOverrides` in `~/.claude/settings.json` hides it from every session, with no warning.
+  Ten of these sat installed and unused for three months that way. Check there first when a
+  skill "isn't there".
+- **ui-ux-pro-max assumes a plugin install.** Its `SKILL.md` runs
+  `${CLAUDE_PLUGIN_ROOT}/.claude/skills/ui-ux-pro-max/scripts/search.py`, which resolves to
+  nothing as a user-level skill, so its database searches fail. Change those paths to
+  `$HOME/.claude/skills/ui-ux-pro-max/scripts/`, and again after every update.
 
 ### Not adopted, and why
 
-- **taste-skill** ([leonxlnx/taste-skill](https://github.com/leonxlnx/taste-skill))'s
-  flagship `design-taste-frontend`, and Emil's **emil-design-eng**, are both *general*
-  design skills. Either one makes a third generalist competing with impeccable and
-  ui-ux-pro-max on the same triggers, so both were skipped. taste-skill's dials idea
-  (VARIANCE / MOTION / DENSITY) and its hard anti-"AI tell" ban list are worth a look if
-  you ever want to *swap out* a generalist rather than stack one on top.
-- **animate-expo** (React Native) and **write-swift** (Swift/iOS) are out of scope for
-  web work. Skipped, not judged.
+- **taste-skill** ([leonxlnx/taste-skill](https://github.com/leonxlnx/taste-skill)), whose
+  skill is `design-taste-frontend`, was installed and removed the same day. It isn't a
+  critic: it builds company websites from a brief under its own rigid house rules (one
+  section per screen, real photographs, no violet), with a browser-driven gate as a Stop
+  hook. It also claims "review" requests, so it competes with impeccable. Worth it only if
+  you want Claude to build marketing sites from scratch.
+- **ui-ux-pro-max's six sibling skills** (design, brand, banner-design, design-system,
+  slides, ui-styling): they duplicate ui-ux-pro-max and impeccable, and `design` sends
+  prompts to external image APIs with your keys.
 
 ---
 
@@ -413,7 +429,7 @@ Knowledge Pipeline is just glue and docs. All credit to the underlying projects:
 
 ## License
 
-This project is licensed under the MIT License — see [LICENSE](LICENSE) for details.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
 MIT is a permissive open-source license that allows you to:
 - ✅ Use this software for personal, commercial, and private purposes

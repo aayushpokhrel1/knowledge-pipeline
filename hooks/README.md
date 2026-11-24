@@ -29,7 +29,7 @@ Per-turn state under `~/.claude/state/`, keyed by `<hash-of-project-dir>`:
 
 ## Design choices (deliberate, not omissions)
 
-- **`Read` of code is gated, but scoped — not blanket-denied.** A blanket Read block is
+- **`Read` of code is gated, but scoped, not blanket-denied.** A blanket Read block is
   blunt: you would `touch` the bypass on every migration, config file, and file you are
   about to edit, and the marker would stop meaning anything. So the gate applies to
   **code-file exploration only**, on two observable signals:

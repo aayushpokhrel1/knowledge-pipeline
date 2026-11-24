@@ -49,7 +49,29 @@ for f in $skills; do
   # 4. Every skill needs its command file, since CLAUDE.md promises both are
   #    installed together.
   [ -f "commands/$dirname_.md" ] || report "commands/$dirname_.md is missing for skill '$dirname_'"
+
+  # 4b. No dollar-digit or $ARGUMENTS in a SKILL.md. Claude Code substitutes
+  #     them with the invocation's arguments when it loads the skill, so prose
+  #     like "cost ~$0.014" was printed as "~C:Users...Design-Pipeline.014" on
+  #     every run that passed a path. Write "0.014 USD". $ARGUMENTS belongs in
+  #     commands/*.md, where substitution is the point.
+  if grep -nE '\$[0-9]|\$ARGUMENTS' "$f"; then
+    report "$f contains \$<digit> or \$ARGUMENTS, which the skill loader replaces with the arguments"
+  fi
 done
+
+# 4c. No em or en dashes in tracked docs or scripts. It is the author's writing
+#     rule for everything written for him, and a sweep on 2026-11-24 found 14
+#     of them, in README, hooks/README and the skill, written by sessions that
+#     had the rule in context. Reading the rule did not stop them; this does.
+# Matched as fixed UTF-8 bytes, not grep -P '\x{2014}': Git Bash's grep rejects
+# that escape ("character value too large") and the check would silently pass.
+em="$(printf '\342\200\224')"; en="$(printf '\342\200\223')"
+dashes="$(git ls-files '*.md' '*.sh' '*.ps1' '*.py' '*.yml' | xargs grep -nF -e "$em" -e "$en" 2>/dev/null)"
+if [ -n "$dashes" ]; then
+  printf '%s\n' "$dashes"
+  report "em or en dashes found above; use a comma, colon, parentheses or two sentences"
+fi
 
 # 5. Every graphify hook must be named in register-hooks.py and in BOTH doc
 #    tables. Two hooks were added once and the README kept describing four of

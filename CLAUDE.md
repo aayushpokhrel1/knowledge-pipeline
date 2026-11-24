@@ -14,7 +14,7 @@ An opinionated setup for a local-first knowledge stack: Obsidian + Graphify + cl
 | `scripts/vault-note.py` | The vault append, installed to `~/.claude/bin/`. Takes **paths only**, by design: note text on a command line gets its backticks executed. Do not add a flag that takes text |
 | `scripts/test-vault-note.py` | Self-check for it. The first case appends prose full of backticks, `<name>` and apostrophes and asserts it survives byte for byte |
 | `scripts/test-install-scaffold.{sh,ps1}` | Smoke tests that run the real installer into a throwaway directory. Run them before touching either installer |
-| `scripts/check-skills.sh` | Holds `skills/` to the rules stated below, and fails when a `hooks/graphify-*.sh` is missing from the installer or from either doc table, so they are not merely written down |
+| `scripts/check-skills.sh` | Holds `skills/` to the rules stated below, and fails when a `hooks/graphify-*.sh` is missing from the installer or from either doc table, when a `SKILL.md` contains a dollar-digit or `$ARGUMENTS` (the skill loader substitutes them with the arguments), or when any tracked doc or script contains an em or en dash, so they are not merely written down |
 | `.github/workflows/ci.yml` | Runs all of the above on Linux, and on Windows under both PowerShell and Git Bash |
 | `claude-obsidian/` | A third-party repo that setup clones here. It is gitignored, NOT vendored. Do not restructure it or add docs to it |
 
